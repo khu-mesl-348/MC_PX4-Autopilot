@@ -1,0 +1,7 @@
+#!/bin/sh
+#
+# Standard startup script for se drivers.
+#
+
+
+se start

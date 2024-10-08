@@ -40,151 +40,116 @@
 
 #include "mc.h"
 
+#define PRIVATE 0
+#define PUBLIC 1
+
+#define MAX_AES_KEY_IDX 1
+#define MAX_AES_KEY_SIZE 16
+
 int publicKey[2] = { 14351, 11 };
 int privateKey[2] = { 14351, 1283 };
-byte AES_key[MAX_AES_KEY_IDX][16] = { 0x7C, 0x85, 0x20, 0x89, 0xFF, 0xDB, 0x16, 0x12, 0x6D, 0xBE, 0xE7, 0xC9, 0x68, 0xA7, 0x51, 0xB5 };
 
-//extern int key_flag;
-AES aes_ctr;
+extern uint8_t _AES_key[16];
+extern int key_flag;
 
-/*void Is_Initialized_MC() {
+byte AES_key[MAX_AES_KEY_IDX][16] = {};
+
+void dump(byte* buf, int len) {
+	int i;
+	for (i = 0; i < len; i++) {
+		printf("%d", (int)buf[i]);
+		printf(" ");
+	}
+	printf("\n");
+}
+
+int Init_MC() {
+
 	while(key_flag != 1);
-}*/
 
-//AES128_CBC
-void Encrypt_AES128(int keyNum, uint8_t* plain_data, int plain_len, uint8_t* enc_data, int* enc_len) {
+	for(int i = 0; i < 16; i++)
+		AES_key[0][i] = _AES_key[i];
+
+	return 1;
+}
+
+int Encrypt_AES128(int keyNum, uint8_t* plain_data, int plain_len, uint8_t* enc_data, int* enc_len) {
 	AES aes;
 
 	plain_data[plain_len++] = 0x00;
 	aes.do_aes_encrypt(plain_data, plain_len, enc_data, AES_key[keyNum], 128);
 	*enc_len = (plain_len) % 16 ? ((plain_len / 16) + 1) * 16: plain_len;
 
+	return 1;
 }
 
-//AES128_CBC
-void Decrypt_AES128(int keyNum, uint8_t* enc_data, int enc_len, uint8_t* dec_data, int* dec_len) {
+int Decrypt_AES128(int keyNum, uint8_t* enc_data, int enc_len, uint8_t* dec_data, int* dec_len) {
 	AES aes;
 
 	aes.do_aes_decrypt(enc_data, enc_len, dec_data, AES_key[keyNum], 128);
 	*dec_len = strlen((char *)dec_data);
 
+	return 1;
 }
 
-void Initialize_AES128_CTR() {
-
-	aes_ctr.ctr_initialize();
-
+int Generate_RSA1024Key(int keyNum) {
+	return 1;
 }
 
-void Encrypt_AES128_CTR(int keyNum, uint8_t* plain_data, int plain_len, uint8_t* enc_data) {
-	aes_ctr.ctr_encrypt(plain_data, plain_len, enc_data, AES_key[keyNum], 128);
+int Encrypt_RSA1024(int key_num, uint8_t* plain_data, int plain_len, uint8_t* enc_data, int* enc_len) {
+	rsa.encrypt(plain_data, plain_len, enc_data, enc_len, publicKey);
 
+	if (enc_len == 0)
+		return 0;
+	return 1;
 }
 
-void Decrypt_AES128_CTR(int keyNum, uint8_t* enc_data, int plain_len, uint8_t* plain_data) {
-	aes_ctr.ctr_decrypt(enc_data, plain_len, plain_data, AES_key[keyNum], 128);
+int Decrypt_RSA1024(int key_num, uint8_t* enc_data, int enc_len, uint8_t* plain_data, int* plain_len) {
+	rsa.decrypt(plain_data, plain_len, enc_data, enc_len, privateKey);
 
+	if (plain_len == 0)
+		return 0;
+	return 1;
 }
 
-// int Generate_RSA1024Key(int keyNum) {
-// 	return 1;
-// }
+int Sign_RSA1024(int key_num, uint8_t* plain_data, int plain_len, uint8_t* sign_data, int* sign_len) {
+	uint8_t hash[32];
+	int hashlen = 32;
 
-void Encrypt_RSA1024(int key_num, uint8_t* plain_data, int plain_len, uint8_t* enc_data, int* enc_len) {
-	rsa.encrypt(plain_data, plain_len, enc_data, enc_len, privateKey);
+
+	SHA_256(plain_data, plain_len, hash, &hashlen);
+
+	rsa.encrypt(hash, hashlen, sign_data, sign_len, privateKey);
+	return 1;
 }
 
-void Decrypt_RSA1024(int key_num, uint8_t* enc_data, int enc_len, uint8_t* plain_data, int* plain_len) {
-	rsa.decrypt(plain_data, plain_len, enc_data, enc_len, publicKey);
+int Verify_RSA1024(int key_num, uint8_t* sign_data, int sign_len, uint8_t* org_data, int* org_len) {
+	uint8_t dec_data[32];
+	int dec_datalen;
+	rsa.decrypt(dec_data, &dec_datalen, sign_data, sign_len, publicKey);
+
+	uint8_t hash[32];
+	int hashlen = 32;
+	SHA_256(org_data, *org_len, hash, &hashlen);
+
+	for (int i = 0; i < 32; i++) {
+		if (hash[i] != dec_data[i])
+			return 0;
+	}
+
+	return 1;
 }
 
-// int Sign_RSA1024(int key_num, uint8_t* plain_data, int plain_len, uint8_t* sign_data, int* sign_len) {
-// 	uint8_t hash[32];
-// 	int hashlen = 32;
+int SHA_256(uint8_t* plain_data, int plain_len, uint8_t* digest, int* digest_len) {
+	SHA256_CTX ctx;
+	ctx.datalen = 0;
+	ctx.bitlen = 512;
 
-// 	SHA_256(plain_data, plain_len, hash, &hashlen);
+	sha256_init(&ctx);
+	sha256_update(&ctx, (uint8_t*)plain_data, plain_len);
+	sha256_final(&ctx, (uint8_t*)digest);
 
-// 	rsa.encrypt(hash, hashlen, sign_data, sign_len, privateKey);
-// 	return 1;
-// }
+	*digest_len = 32;
 
-// int Verify_RSA1024(int key_num, uint8_t* sign_data, int sign_len, uint8_t* org_data, int* org_len) {
-// 	uint8_t dec_data[32];
-// 	int dec_datalen;
-// 	rsa.decrypt(dec_data, &dec_datalen, sign_data, sign_len, publicKey);
-
-// 	uint8_t hash[32];
-// 	int hashlen = 32;
-// 	SHA_256(org_data, *org_len, hash, &hashlen);
-
-// 	for (int i = 0; i < 32; i++) {
-// 		if (hash[i] != dec_data[i])
-// 			return 0;
-// 	}
-
-// 	return 1;
-// }
-
-
-// SHA256_Init
-//  int Sign_RSA1024_Init(SHA256_CTX* ctx) {
-// 	ctx->datalen = 0;
-// 	ctx->bitlen = 512;
-// 	sha256_init(ctx);
-
-// 	return 1;
-// }
-
-//SHA256_Update
-// int Sign_RSA1024_Update(SHA256_CTX* ctx, uint8_t* plain_data, int plain_len, uint8_t* sign_data) {
-// 	uint8_t hash[32];
-// 	sha256_update(ctx, plain_data, plain_len);
-// 	sha256_final(ctx, hash);
-
-// 	int sign_len;
-// 	rsa.encrypt(hash, 32, sign_data, &sign_len, privateKey);
-
-// 	return 1;
-// }
-
-//SHA256_Final
-
-
-// int SHA_256(uint8_t* plain_data, int plain_len, uint8_t* digest, int* digest_len) {
-// 	SHA256_CTX ctx;
-// 	ctx.datalen = 0;
-// 	ctx.bitlen = 512;
-
-// 	sha256_init(&ctx);
-// 	sha256_update(&ctx, (uint8_t*)plain_data, plain_len);
-// 	sha256_final(&ctx, (uint8_t*)digest);
-
-// 	*digest_len = 32;
-
-// 	return 1;
-// }
-
-void SHA256_Init(SHA256_CTX* ctx){
-	sha256_init(ctx);
-}
-
-void SHA256_Update(SHA256_CTX* ctx, uint8_t* plain_data, int plain_len){
-	sha256_update(ctx, plain_data, plain_len);
-}
-
-void SHA256_Final(SHA256_CTX* ctx, uint8_t* digest){
-	sha256_final(ctx, digest);
-}
-
-void HMAC_Init(SHA256_CTX* ctx, uint8_t* key) {
-	sha256_init(ctx);
-	sha256_update(ctx, key, 16);
-}
-
-void HMAC_Update(SHA256_CTX* ctx, uint8_t* plain_data, int plain_len) {
-	sha256_update(ctx, plain_data, plain_len);
-}
-
-void HMAC_Final(SHA256_CTX* ctx, uint8_t* digest){
-	sha256_final(ctx, digest);
+	return 1;
 }

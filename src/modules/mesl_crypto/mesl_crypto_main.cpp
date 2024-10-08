@@ -1,6 +1,6 @@
 #include "mesl_crypto_main.h"
 
-//#include <nuttx/config.h>
+#include <nuttx/config.h>
 #include <px4_platform_common/log.h>
 
 #include <stdio.h>
@@ -12,8 +12,7 @@ extern "C" __EXPORT int mesl_crypto_main(int argc, char *argv[]) {
 
 	PX4_INFO("Successful: Executed MESL CRYPTO MODULE");
 
-	/*if (!Init_SE())
-		printf("SE Connection Failure");
+	Init_MC();
 
 	uint8_t plain_data[] = "HELLO MESL Crypto";
 	int plain_len = strlen((char *)plain_data);
@@ -30,6 +29,7 @@ extern "C" __EXPORT int mesl_crypto_main(int argc, char *argv[]) {
 		printf("SHA256_digest: ");
 		dump(digest, digest_len);
 	}
+
 	else {
 		printf("SHA256 Failure");
 	}
@@ -44,8 +44,8 @@ extern "C" __EXPORT int mesl_crypto_main(int argc, char *argv[]) {
 	uint8_t AES_dec_data[64];
 	int AES_dec_len;
 
-	//if (!Generate_AES128Key(AES_key_num))
-	//	printf("Set AES128 Key Generation Failure\n");
+	// if (!Generate_AES128Key(AES_key_num))
+	// 	printf("Set AES128 Key Generation Failure\n");
 
 	if (Encrypt_AES128(AES_key_num, plain_data, plain_len, AES_enc_data, &AES_enc_len)) {
 		printf("AES enc_data : ");
@@ -72,8 +72,8 @@ extern "C" __EXPORT int mesl_crypto_main(int argc, char *argv[]) {
 	uint8_t RSA_dec_data[64];
 	int RSA_dec_len;
 
-	//if (!Generate_RSA1024Key(RSA_key_num))
-	//	printf("Set RSA1024 Key Generation Failure\n");
+	if (!Generate_RSA1024Key(RSA_key_num))
+		printf("Set RSA1024 Key Generation Failure\n");
 
 	if (Encrypt_RSA1024(RSA_key_num, plain_data, plain_len, RSA_enc_data, &RSA_enc_len)) {
 		printf("enc_data: ");
@@ -112,7 +112,7 @@ extern "C" __EXPORT int mesl_crypto_main(int argc, char *argv[]) {
 	else
 	{
 		printf("RSA 1024 Failure");
-	}*/
+	}
 
 	return 0;
 }

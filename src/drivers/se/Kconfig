@@ -1,0 +1,6 @@
+menuconfig DRIVERS_SE
+	bool "se"
+	default n
+	---help---
+		Enable support for SE
+

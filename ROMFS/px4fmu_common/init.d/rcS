@@ -556,6 +556,9 @@ else
 		fi
 	fi
 
+
+	. ${R}etc/init.d/rc.se
+
 #
 # End of autostart.
 #
