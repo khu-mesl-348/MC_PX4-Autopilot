@@ -14,8 +14,11 @@ void dump(byte* buf, int len);
 
 int Init_MC();
 
+int Generate_AES128Key(int keyNum);
 int Encrypt_AES128(int keyNum, uint8_t* plain_data, int plain_len, uint8_t* enc_data, int* enc_len);
 int Decrypt_AES128(int keyNum, uint8_t* enc_data, int enc_len, uint8_t* dec_data, int* dec_len);
+int Encrypt_AES128_CTR(int keyNum, uint8_t* plain_data, int plain_len, uint8_t* enc_data);
+int Initialize_AES128_CTR();
 
 int Generate_RSA1024Key(int keyNum);
 int Encrypt_RSA1024(int key_num, uint8_t* plain_data, int plain_len, uint8_t* enc_data, int* enc_len);
@@ -23,6 +26,9 @@ int Decrypt_RSA1024(int key_num, uint8_t* enc_data, int enc_len, uint8_t* plain_
 
 int Sign_RSA1024(int key_num, uint8_t* plain_data, int plain_len, uint8_t* sign_data, int* sign_len);
 int Verify_RSA1024(int key_num, uint8_t* sign_data, int sign_len, uint8_t* org_data, int* org_len);
+
+int Sign_RSA1024_Init(SHA256_CTX* ctx);
+int Sign_RSA1024_Update(SHA256_CTX* ctx, uint8_t* plain_data, int plain_len, uint8_t* sign_data);
 
 int SHA_256(uint8_t* plain_data, int plain_len, uint8_t* digest, int* digest_len);
 #endif

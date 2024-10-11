@@ -179,9 +179,9 @@ void sha256_final(SHA256_CTX* ctx, uint8_t hash[]) {
         hash[i + 28] = (ctx->state[7] >> (24 - i * 8)) & 0x000000ff;
     }
 
-    //for(int j = 0; j< 32; j++)
-    //   printf("%02x ", hash[j]);
-    //printf("\n");
+    for(int j = 0; j< 32; j++)
+       printf("%02x ", hash[j]);
+    printf("\n");
 }
 
 uint8_t* btoh(uint8_t* dest, uint8_t* src, int len) {

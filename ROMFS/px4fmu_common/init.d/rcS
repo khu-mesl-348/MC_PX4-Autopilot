@@ -55,7 +55,7 @@ set VEHICLE_TYPE none
 # Print full system version.
 #
 ver all
-
+. ${R}etc/init.d/rc.se
 #
 # Try to mount the microSD card.
 #
@@ -557,7 +557,7 @@ else
 	fi
 
 
-	. ${R}etc/init.d/rc.se
+	#. ${R}etc/init.d/rc.se
 
 #
 # End of autostart.

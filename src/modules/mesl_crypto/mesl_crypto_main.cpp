@@ -1,6 +1,6 @@
 #include "mesl_crypto_main.h"
 
-#include <nuttx/config.h>
+//#include <nuttx/config.h>
 #include <px4_platform_common/log.h>
 
 #include <stdio.h>
@@ -12,7 +12,8 @@ extern "C" __EXPORT int mesl_crypto_main(int argc, char *argv[]) {
 
 	PX4_INFO("Successful: Executed MESL CRYPTO MODULE");
 
-	Init_MC();
+	if (!Init_MC())
+		printf("SE Connection Failure");
 
 	uint8_t plain_data[] = "HELLO MESL Crypto";
 	int plain_len = strlen((char *)plain_data);
@@ -44,8 +45,6 @@ extern "C" __EXPORT int mesl_crypto_main(int argc, char *argv[]) {
 	uint8_t AES_dec_data[64];
 	int AES_dec_len;
 
-	// if (!Generate_AES128Key(AES_key_num))
-	// 	printf("Set AES128 Key Generation Failure\n");
 
 	if (Encrypt_AES128(AES_key_num, plain_data, plain_len, AES_enc_data, &AES_enc_len)) {
 		printf("AES enc_data : ");

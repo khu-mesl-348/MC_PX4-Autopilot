@@ -580,7 +580,6 @@ void AES::do_aes_encrypt(byte *plain,int size_p,byte *cipher,byte *key, int bits
 	int blocks = get_size() / N_BLOCK;
 	set_key (key, bits) ;
 	cbc_encrypt (plain_p, cipher, blocks);
-  free(plain_p);
 }
 
 /******************************************************************************/
@@ -620,8 +619,7 @@ void AES::increment_iv(byte *iv_buf, int counter_size) {
 }
 
 void AES::ctr_initialize() {
-  byte backup_iv[16] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01};
-  memcpy(ctr_iv, backup_iv, N_BLOCK);
+  memset(ctr_iv, 0, 16);
   last_block_len = 0;
 }
 
@@ -656,11 +654,11 @@ byte AES::ctr_encrypt(byte *plain, int plain_len, byte *cipher, byte *key, int b
   xor_buf(out_buf, &cipher[i + processed_len], plain_len - i, 0);
   last_block_len = plain_len - i;
   memcpy(ctr_iv, iv_buf, N_BLOCK);
-  printf("length: %d, %d\n", plain_len, last_block_len);
+  //printf("length: %d, %d\n", plain_len, last_block_len);
 
-  for(i = 0; i < N_BLOCK; i++)
-    printf("%02x ", ctr_iv[i]);
-  printf("\n\n");
+  //for(i = 0; i < N_BLOCK; i++)
+  //  printf("%02x ", ctr_iv[i]);
+  //printf("\n\n");
 
   return SUCCESS;
 }
