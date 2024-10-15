@@ -38,10 +38,8 @@ public:
 	int Init_SE();
 	static void Exit_SE();
 
-	int SHA(uint8_t algId, const uint8_t* plainData, int plainLen, uint8_t* digest, int* digestLen);
-	int RNG(uint8_t randomNumberLen, uint8_t* randomNum);
-
 	int Get_AES128Key(uint8_t* buffer, int key_num, int key_len); // AES-128 cbc or HMAC
+	void Initialize_MC();
 
 private:
 
@@ -75,6 +73,7 @@ private:
 	void purge_UART();
 
 	void error_ctl();
+
 };
 
 SE_HW* SE_HW::_instance = nullptr;

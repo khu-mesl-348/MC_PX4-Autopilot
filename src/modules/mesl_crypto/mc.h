@@ -15,7 +15,7 @@
 
 typedef uint8_t byte;
 
-void Init_MC();
+void Is_Initialized_MC();
 
 void Encrypt_AES128(int keyNum, uint8_t* plain_data, int plain_len, uint8_t* enc_data, int* enc_len);
 void Decrypt_AES128(int keyNum, uint8_t* enc_data, int enc_len, uint8_t* dec_data, int* dec_len);

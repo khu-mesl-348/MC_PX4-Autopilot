@@ -22,7 +22,7 @@ extern "C" __EXPORT int mesl_crypto_main(int argc, char *argv[]) {
 
 	// PX4_INFO("Successful: Executed MESL CRYPTO MODULE");
 
-	Init_MC();
+	Is_Initialized_MC();
 
 	uint8_t s_plain_data[] = "HELLO MESL Crypto";
 	uint8_t v_plain_data[] = "BYE MESL Crypto";

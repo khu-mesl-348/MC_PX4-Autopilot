@@ -47,10 +47,8 @@ byte AES_key[MAX_AES_KEY_IDX][16] = {};
 extern int key_flag;
 AES aes_ctr;
 
-void Init_MC() {
-
+void Is_Initialized_MC() {
 	while(key_flag != 1);
-
 }
 
 //AES128_CBC

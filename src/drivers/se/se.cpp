@@ -117,21 +117,20 @@ int se_main(int argc, char *argv[]){
 			SE_HW::Exit_SE();
 			return 0;
 		}
+
 		set_se->Get_AES128Key(_AES_key, 0, 16);
 		PX4_INFO("Get key from SE. Done.\n");
 
-		for(int i = 0; i < 16; i++)
-			AES_key[0][i] = _AES_key[i];
+		set_se->Initialize_MC();
 
 		key_flag = 1;
+		SE_HW::Exit_SE();
 	}
-
-	// for(int j=0; j<16; j++){
-	// 	PX4_INFO("key_buf[%d]: %02x\n", j, _AES_key[j]);
-	// }
 
 	return 1;
 }
+
+/* In order to not only load the key but also perform encryption and decryption in SE, the singleton pattern is used. */
 
 SE_HW* SE_HW::Instance(){
 	if(_instance == nullptr){
@@ -700,4 +699,9 @@ int SE_HW::Get_AES128Key(uint8_t* buffer, int key_num, int key_len) {
 	}
 
 	return FALSE;
+}
+
+void SE_HW::Initialize_MC(){
+	for(int i = 0; i < 16; i++)
+		AES_key[0][i] = _AES_key[i];
 }
