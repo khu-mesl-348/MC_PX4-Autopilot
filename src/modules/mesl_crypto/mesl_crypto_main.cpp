@@ -1,4 +1,5 @@
 #include "mesl_crypto_main.h"
+#include "SHA.h"
 
 //#include <nuttx/config.h>
 #include <px4_platform_common/log.h>
@@ -6,38 +7,52 @@
 #include <stdio.h>
 #include <errno.h>
 
-//__EXPORT void mesl_crypto_main(int argc, char *argv[]);
+extern uint8_t AES_key[1][16];
+
+void dump(byte* buf, int len) {
+	int i;
+	for (i = 0; i < len; i++) {
+		printf("%d", (int)buf[i]);
+		printf(" ");
+	}
+	printf("\n");
+}
 
 extern "C" __EXPORT int mesl_crypto_main(int argc, char *argv[]) {
 
-	PX4_INFO("Successful: Executed MESL CRYPTO MODULE");
+	// PX4_INFO("Successful: Executed MESL CRYPTO MODULE");
 
-	if (!Init_MC())
-		printf("SE Connection Failure");
+	Init_MC();
 
-	uint8_t plain_data[] = "HELLO MESL Crypto";
-	int plain_len = strlen((char *)plain_data);
+	uint8_t s_plain_data[] = "HELLO MESL Crypto";
+	uint8_t v_plain_data[] = "BYE MESL Crypto";
+	int s_plain_len = strlen((char *)s_plain_data);
+	int v_plain_len = strlen((char *)v_plain_data);
 
-	printf("plain_data: ");
-	dump(plain_data, plain_len);
+	//Test HMAC
+	SHA256_CTX s_ctx;
+	SHA256_CTX v_ctx;
+	uint8_t s_hash[32];
+	uint8_t v_hash[32];
 
-	//Test SHA256
+	// Singing with HMAC
+	HMAC_Init(&s_ctx, AES_key[0]);
+	HMAC_Update(&s_ctx, s_plain_data, s_plain_len);
+	HMAC_Final(&s_ctx, s_hash);
 
-	uint8_t digest[32];
-	int digest_len = 32;
+	//Verifying with HMAC
+	HMAC_Init(&v_ctx, AES_key[0]);
+	HMAC_Update(&v_ctx, v_plain_data, v_plain_len);
+	HMAC_Final(&v_ctx, v_hash);
 
-	if (SHA_256(plain_data, plain_len, digest, &digest_len)) {
-		printf("SHA256_digest: ");
-		dump(digest, digest_len);
-	}
-
-	else {
-		printf("SHA256 Failure");
+	for(int i = 0; i < 32; i++){
+		if(s_hash[i] != v_hash[i]){
+			PX4_INFO("HAMC Verifying Failed. \n");
+			break;
+		}
 	}
 
 	//Test AES-128
-
-	int AES_key_num = 0x0;
 
 	uint8_t AES_enc_data[64];
 	int AES_enc_len;
@@ -45,20 +60,15 @@ extern "C" __EXPORT int mesl_crypto_main(int argc, char *argv[]) {
 	uint8_t AES_dec_data[64];
 	int AES_dec_len;
 
+	int AES_key_num = 0x0;
 
-	if (Encrypt_AES128(AES_key_num, plain_data, plain_len, AES_enc_data, &AES_enc_len)) {
-		printf("AES enc_data : ");
-		dump(AES_enc_data, AES_enc_len);
-	}
-	else
-		printf("AES Encrypt plain_data Failure\n");
+	Encrypt_AES128(AES_key_num, s_plain_data, s_plain_len, AES_enc_data, &AES_enc_len);
+	printf("AES enc_data : ");
+	dump(AES_enc_data, AES_enc_len);
 
-	if (Decrypt_AES128(AES_key_num, AES_enc_data, AES_enc_len, AES_dec_data, &AES_dec_len)) {
-		printf("AES dec_data : ");
-		dump(AES_dec_data, AES_dec_len);
-	}
-	else
-		printf("AES Decrypt enc_data Failure\n");
+	Decrypt_AES128(AES_key_num, AES_enc_data, AES_enc_len, AES_dec_data, &AES_dec_len);
+	printf("AES dec_data : ");
+	dump(AES_dec_data, AES_dec_len);
 
 
 	// Test RSA-1024 (Encryption)
@@ -71,47 +81,12 @@ extern "C" __EXPORT int mesl_crypto_main(int argc, char *argv[]) {
 	uint8_t RSA_dec_data[64];
 	int RSA_dec_len;
 
-	if (!Generate_RSA1024Key(RSA_key_num))
-		printf("Set RSA1024 Key Generation Failure\n");
+	Encrypt_RSA1024(RSA_key_num, s_plain_data, s_plain_len, RSA_enc_data, &RSA_enc_len);
+	printf("enc_data: ");
 
-	if (Encrypt_RSA1024(RSA_key_num, plain_data, plain_len, RSA_enc_data, &RSA_enc_len)) {
-		printf("enc_data: ");
-		dump(RSA_enc_data, RSA_enc_len);
-	}
-	else
-		printf("Encrypt plain_data Failure\n");
-	if (Decrypt_RSA1024(RSA_key_num, RSA_enc_data, RSA_enc_len, RSA_dec_data, &RSA_dec_len)) {
-		printf("dec_data: ");
-		dump(RSA_dec_data, RSA_dec_len);
-	}
-	else
-		printf("Decrypt enc_data Failure\n");
-
-
-	// Test RSA-1024 (Verification)
-
-	int RSA_key = 0x01;
-	uint8_t RSA_sign_data[128];
-	int RSA_sign_len;
-
-	if (!Generate_RSA1024Key(RSA_key)) {
-		printf("Key Generation err\n");
-	}
-
-	if (!Sign_RSA1024(RSA_key, plain_data, plain_len, RSA_sign_data, &RSA_sign_len)) {
-		printf("Signing err\n");
-	}
-
-	printf("sign_data: ");
-	dump(RSA_sign_data, 128);
-
-	if (Verify_RSA1024(RSA_key, RSA_sign_data, RSA_sign_len, plain_data, &plain_len)){
-		printf("Verify Success\n");
-	}
-	else
-	{
-		printf("RSA 1024 Failure");
-	}
+	Decrypt_RSA1024(RSA_key_num, RSA_enc_data, RSA_enc_len, RSA_dec_data, &RSA_dec_len);
+	printf("dec_data: ");
+	dump(RSA_dec_data, RSA_dec_len);
 
 	return 0;
 }

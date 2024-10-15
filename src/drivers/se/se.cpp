@@ -13,7 +13,7 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/time.h>
 #include <px4_platform_common/Serial.hpp> //UART
-#include <px4_arch/micro_hal.h> //GPIO?
+#include <px4_arch/micro_hal.h> //GPIO
 
 #include "se.h"
 
@@ -96,6 +96,8 @@ int DataChunkSize = 0;
 uint8_t _AES_key[16] = {0,};
 int key_flag = 0;
 
+extern uint8_t AES_key[1][16];
+
 void dump(uint8_t* buf, int len);
 
 //extern void UART_setTimeout(int time);
@@ -117,6 +119,10 @@ int se_main(int argc, char *argv[]){
 		}
 		set_se->Get_AES128Key(_AES_key, 0, 16);
 		PX4_INFO("Get key from SE. Done.\n");
+
+		for(int i = 0; i < 16; i++)
+			AES_key[0][i] = _AES_key[i];
+
 		key_flag = 1;
 	}
 
