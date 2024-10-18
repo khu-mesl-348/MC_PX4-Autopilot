@@ -81,9 +81,8 @@ void Encrypt_AES128_CTR(int keyNum, uint8_t* plain_data, int plain_len, uint8_t*
 
 }
 
-// Decrypt API를 사용하게끔 수정
 void Decrypt_AES128_CTR(int keyNum, uint8_t* enc_data, int plain_len, uint8_t* plain_data) {
-	aes_ctr.ctr_encrypt(enc_data, plain_len, plain_data, AES_key[keyNum], 128);
+	aes_ctr.ctr_decrypt(enc_data, plain_len, plain_data, AES_key[keyNum], 128);
 
 }
 
