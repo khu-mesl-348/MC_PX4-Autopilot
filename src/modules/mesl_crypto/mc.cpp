@@ -45,7 +45,6 @@ int privateKey[2] = { 14351, 1283 };
 byte AES_key[MAX_AES_KEY_IDX][16] = {};
 
 extern int key_flag;
-AES aes_ctr;
 
 void Is_Initialized_MC() {
 	while(key_flag != 1);
@@ -70,18 +69,18 @@ void Decrypt_AES128(int keyNum, uint8_t* enc_data, int enc_len, uint8_t* dec_dat
 
 }
 
-void Initialize_AES128_CTR() {
+void Initialize_AES128_CTR(AES* aes_ctr) {
 
 	aes_ctr.ctr_initialize();
 
 }
 
-void Encrypt_AES128_CTR(int keyNum, uint8_t* plain_data, int plain_len, uint8_t* enc_data) {
+void Encrypt_AES128_CTR(AES* aes_ctr, int keyNum, uint8_t* plain_data, int plain_len, uint8_t* enc_data) {
 	aes_ctr.ctr_encrypt(plain_data, plain_len, enc_data, AES_key[keyNum], 128);
 
 }
 
-void Decrypt_AES128_CTR(int keyNum, uint8_t* enc_data, int plain_len, uint8_t* plain_data) {
+void Decrypt_AES128_CTR(AES* aes_ctr, int keyNum, uint8_t* enc_data, int plain_len, uint8_t* plain_data) {
 	aes_ctr.ctr_decrypt(enc_data, plain_len, plain_data, AES_key[keyNum], 128);
 
 }

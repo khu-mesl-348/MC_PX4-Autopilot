@@ -628,6 +628,7 @@ byte AES::ctr_encrypt(byte *plain, int plain_len, byte *cipher, byte *key, int b
   int i = 0, len, processed_len = 0;
   byte iv_buf[N_BLOCK], out_buf[N_BLOCK];
   memcpy(iv_buf, ctr_iv, N_BLOCK);
+  memcpy(cipher, plain, plain_len);
 
   if(N_BLOCK - last_block_len > 0 && last_block_len != 0) {
     if(encrypt(iv_buf, out_buf) != SUCCESS)

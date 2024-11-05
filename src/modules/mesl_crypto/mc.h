@@ -19,9 +19,9 @@ void Is_Initialized_MC();
 
 void Encrypt_AES128(int keyNum, uint8_t* plain_data, int plain_len, uint8_t* enc_data, int* enc_len);
 void Decrypt_AES128(int keyNum, uint8_t* enc_data, int enc_len, uint8_t* dec_data, int* dec_len);
-void Encrypt_AES128_CTR(int keyNum, uint8_t* plain_data, int plain_len, uint8_t* enc_data);
-void Decrypt_AES128_CTR(int keyNum, uint8_t* enc_data, int plain_len, uint8_t* plain_data);
-void Initialize_AES128_CTR();
+void Encrypt_AES128_CTR(AES* aes_ctr, int keyNum, uint8_t* plain_data, int plain_len, uint8_t* enc_data);
+void Decrypt_AES128_CTR(AES* aes_ctr, int keyNum, uint8_t* enc_data, int plain_len, uint8_t* plain_data);
+void Initialize_AES128_CTR(AES* aes_ctr);
 
 void Encrypt_RSA1024(int key_num, uint8_t* plain_data, int plain_len, uint8_t* enc_data, int* enc_len);
 void Decrypt_RSA1024(int key_num, uint8_t* enc_data, int enc_len, uint8_t* plain_data, int* plain_len);
