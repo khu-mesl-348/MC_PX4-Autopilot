@@ -78,6 +78,23 @@ enum {
 };
 #endif
 
+static struct {
+	union {
+		struct {
+			int fd;
+		} file;
+		struct {
+			int sign_fd;
+			int backup_fd;
+			uint8_t *data;
+			uint8_t *enc_data;
+			uint8_t *data_end;
+		} ram;
+	};
+	bool running;
+	bool silence = false;
+} dm_operations_data;
+
 struct dataman_compat_s {
 	uint64_t key;
 };

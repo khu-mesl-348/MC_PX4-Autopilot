@@ -40,6 +40,13 @@
  * @author Thomas Gubler <thomas@px4.io>
  */
 
+#define CIPHER_MODE
+//#define INTEGRITY_MODE
+//#define NORMAL_MODE
+
+#include "../mesl_crypto/mc.h"
+#include "../mesl_crypto/secure_mavlink/secure_px4.h"
+
 #include <lib/airspeed/airspeed.h>
 #include <lib/conversion/rotation.h>
 #include <lib/systemlib/px4_macros.h>
@@ -3180,6 +3187,132 @@ MavlinkReceiver::run()
 			if (_mavlink->get_protocol() != Protocol::UDP || _mavlink->get_client_source_initialized()) {
 #endif // MAVLINK_UDP
 
+				static int mesl_packet_buf_index=0;
+				static uint8_t mesl_packet_buf[300] = {0};
+				static int mesl_nread = 0;
+				static int mesl_next_index = 0;
+				int mesl_check_flag=0;
+
+#ifdef CIPHER_MODE
+				mesl_px4_decrypt(&nread, &buf[0], &mesl_packet_buf[0], &mesl_packet_buf_index, &mesl_next_index, &mesl_nread, &mesl_check_flag);
+				if(mesl_check_flag==1){
+					mesl_px4_read(&nread,  &buf[0], &mesl_packet_buf[0],  &mesl_packet_buf_index,  &mesl_next_index, &mesl_nread);
+
+
+					/* if read failed, this loop won't execute */
+					for (ssize_t i = 0; i < mesl_nread; i++) {
+						if (mavlink_parse_char(_mavlink->get_channel(), buf[i], &msg, &_status)) {
+
+							/* check if we received version 2 and request a switch. */
+							if (!(_mavlink->get_status()->flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1)) {
+								/* this will only switch to proto version 2 if allowed in settings */
+								_mavlink->set_proto_version(2);
+							}
+
+							/* handle generic messages and commands */
+							handle_message(&msg);
+
+							/* handle packet with mission manager */
+							_mission_manager.handle_message(&msg);
+
+							/* handle packet with parameter component */
+							if (_mavlink->boot_complete()) {
+								// make sure mavlink app has booted before we start processing parameter sync
+								_parameters_manager.handle_message(&msg);
+
+							} else {
+								if (hrt_elapsed_time(&_mavlink->get_first_start_time()) > 20_s) {
+									PX4_ERR("system boot did not complete in 20 seconds");
+									_mavlink->set_boot_complete();
+								}
+							}
+
+							if (_mavlink->ftp_enabled()) {
+								/* handle packet with ftp component */
+								_mavlink_ftp.handle_message(&msg);
+							}
+
+							/* handle packet with log component */
+							_mavlink_log_handler.handle_message(&msg);
+
+							/* handle packet with timesync component */
+							_mavlink_timesync.handle_message(&msg);
+
+							/* handle packet with parent object */
+							_mavlink->handle_message(&msg);
+
+							update_rx_stats(msg);
+
+							if (_message_statistics_enabled) {
+								update_message_statistics(msg);
+							}
+						}
+					}
+				}
+
+
+#endif
+
+#ifdef INTEGRITY_MODE
+				mesl_px4_integrity_check(&nread, &buf[0], &mesl_packet_buf[0], &mesl_packet_buf_index, &mesl_next_index, &mesl_nread, &mesl_check_flag);
+				if(mesl_check_flag==1){
+					mesl_px4_read(&nread,  &buf[0], &mesl_packet_buf[0],  &mesl_packet_buf_index,  &mesl_next_index, &mesl_nread);
+
+
+					/* if read failed, this loop won't execute */
+					for (ssize_t i = 0; i < mesl_nread; i++) {
+						if (mavlink_parse_char(_mavlink->get_channel(), buf[i], &msg, &_status)) {
+
+							/* check if we received version 2 and request a switch. */
+							if (!(_mavlink->get_status()->flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1)) {
+								/* this will only switch to proto version 2 if allowed in settings */
+								_mavlink->set_proto_version(2);
+							}
+
+							/* handle generic messages and commands */
+							handle_message(&msg);
+
+							/* handle packet with mission manager */
+							_mission_manager.handle_message(&msg);
+
+							/* handle packet with parameter component */
+							if (_mavlink->boot_complete()) {
+								// make sure mavlink app has booted before we start processing parameter sync
+								_parameters_manager.handle_message(&msg);
+
+							} else {
+								if (hrt_elapsed_time(&_mavlink->get_first_start_time()) > 20_s) {
+									PX4_ERR("system boot did not complete in 20 seconds");
+									_mavlink->set_boot_complete();
+								}
+							}
+
+							if (_mavlink->ftp_enabled()) {
+								/* handle packet with ftp component */
+								_mavlink_ftp.handle_message(&msg);
+							}
+
+							/* handle packet with log component */
+							_mavlink_log_handler.handle_message(&msg);
+
+							/* handle packet with timesync component */
+							_mavlink_timesync.handle_message(&msg);
+
+							/* handle packet with parent object */
+							_mavlink->handle_message(&msg);
+
+							update_rx_stats(msg);
+
+							if (_message_statistics_enabled) {
+								update_message_statistics(msg);
+							}
+						}
+					}
+				}
+
+#endif
+
+#ifdef NORMAL_MODE
 				/* if read failed, this loop won't execute */
 				for (ssize_t i = 0; i < nread; i++) {
 					if (mavlink_parse_char(_mavlink->get_channel(), buf[i], &msg, &_status)) {
@@ -3229,6 +3362,7 @@ MavlinkReceiver::run()
 						}
 					}
 				}
+#endif
 
 				/* count received bytes (nread will be -1 on read error) */
 				if (nread > 0) {

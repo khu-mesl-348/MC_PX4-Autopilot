@@ -39,6 +39,8 @@
 #include <errno.h>
 
 #include <mathlib/mathlib.h>
+#include <modules/mesl_crypto/mc.h>
+#include <modules/mesl_crypto/secure_data/log_mesl_crypto.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/crypto.h>
 #ifdef __PX4_NUTTX
@@ -46,7 +48,6 @@
 #endif /* __PX4_NUTTX */
 
 using namespace time_literals;
-
 
 namespace px4
 {
@@ -303,7 +304,7 @@ int LogWriterFile::thread_start()
 	param.sched_priority = SCHED_PRIORITY_DEFAULT - 40;
 	(void)pthread_attr_setschedparam(&thr_attr, &param);
 
-	pthread_attr_setstacksize(&thr_attr, PX4_STACK_ADJUSTED(1170));
+	pthread_attr_setstacksize(&thr_attr, PX4_STACK_ADJUSTED(2000));
 
 	int ret = pthread_create(&_thread, &thr_attr, &LogWriterFile::run_helper, this);
 	pthread_attr_destroy(&thr_attr);
@@ -363,6 +364,8 @@ void LogWriterFile::run()
 
 		pthread_mutex_lock(&_mtx);
 
+		Initialize_mesl_crypto();
+
 		while (true) {
 
 			const hrt_abstime now = hrt_absolute_time();
@@ -421,9 +424,16 @@ void LogWriterFile::run()
 							PX4_ERR("Encryption output size mismatch, logfile corrupted");
 						}
 					}
+#endif				
 
+#if defined(INTEGRITY_MODE)
+					mesl_sign_log((byte*)read_ptr, available);
 #endif
 
+#if defined(CIPHER_MODE)
+					mesl_enc_log((byte*)read_ptr, available);
+#endif
+					
 					int written = buffer.write_to_file(read_ptr, available, call_fsync);
 
 					if (written < 0) {
@@ -491,7 +501,13 @@ void LogWriterFile::run()
 
 		// go back to idle
 		pthread_mutex_unlock(&_mtx);
+
+#if defined(INTEGRITY_MODE)
+		mesl_close_sign_file();
+#endif
 	}
+
+
 }
 
 int LogWriterFile::write_message(LogType type, void *ptr, size_t size, uint64_t dropout_start)
@@ -642,6 +658,10 @@ bool LogWriterFile::LogFileBuffer::start_log(const char *filename)
 		PX4_ERR("Can't open log file %s, errno: %d", filename, errno);
 		return false;
 	}
+
+#if defined(LOG_INTEGRITY_MODE)
+	mesl_set_sign_filename(filename);
+#endif
 
 	if (_buffer == nullptr) {
 		_buffer = (uint8_t *) px4_cache_aligned_alloc(_buffer_size);

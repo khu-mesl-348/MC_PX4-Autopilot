@@ -41,6 +41,8 @@
  * @author David Sidrane
  */
 
+#include <modules/mesl_crypto/mc.h>
+#include <modules/mesl_crypto/secure_data/dm_mesl_crypto.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
@@ -56,6 +58,8 @@
 __BEGIN_DECLS
 __EXPORT int dataman_main(int argc, char *argv[]);
 __END_DECLS
+
+unsigned dm_size;
 
 static constexpr int TASK_STACK_SIZE = 1220;
 
@@ -102,19 +106,22 @@ static constexpr dm_operations_t dm_ram_operations = {
 
 static const dm_operations_t *g_dm_ops;
 
-static struct {
+/*static struct {
 	union {
 		struct {
 			int fd;
 		} file;
 		struct {
+			int sign_fd;
+			int backup_fd;
 			uint8_t *data;
+			uint8_t *enc_data;
 			uint8_t *data_end;
 		} ram;
 	};
 	bool running;
 	bool silence = false;
-} dm_operations_data;
+} dm_operations_data;*/
 
 /** Types of function calls supported by the worker task */
 typedef enum {
@@ -393,6 +400,7 @@ static ssize_t _ram_write(dm_item_t item, unsigned index, const void *buf, size_
 {
 	/* Get the offset for this item */
 	int offset = calculate_offset(item, index);
+	PX4_INFO("offset: %d", offset);
 
 	/* If item type or index out of range, return error */
 	if (offset < 0) {
@@ -403,6 +411,7 @@ static ssize_t _ram_write(dm_item_t item, unsigned index, const void *buf, size_
 	if (count > (g_per_item_size[item] - DM_SECTOR_HDR_SIZE)) {
 		return -E2BIG;
 	}
+	//printf("   %d\n", (g_per_item_size[item] - DM_SECTOR_HDR_SIZE));
 
 	uint8_t *buffer = &dm_operations_data.ram.data[offset];
 
@@ -419,6 +428,14 @@ static ssize_t _ram_write(dm_item_t item, unsigned index, const void *buf, size_
 	if (count > 0) {
 		memcpy(buffer + DM_SECTOR_HDR_SIZE, buf, count);
 	}
+
+#if defined(INTEGRITY_MODE)
+	mesl_sign_dataman(offset);
+#endif
+
+#if defined(CIPHER_MODE)
+	mesl_enc_dataman(offset);
+#endif
 
 	/* All is well... return the number of user data written */
 	return count;
@@ -442,6 +459,7 @@ _file_write(dm_item_t item, unsigned index, const void *buf, size_t count)
 	if (count > (g_per_item_size[item] - DM_SECTOR_HDR_SIZE)) {
 		return -E2BIG;
 	}
+	printf("   %d\n", (g_per_item_size[item] - DM_SECTOR_HDR_SIZE));
 
 	/* Write out the data, prefixed with length */
 	buffer[0] = count;
@@ -540,7 +558,7 @@ static ssize_t _ram_read(dm_item_t item, unsigned index, void *buf, size_t count
 /* Retrieve from the data manager file */
 static ssize_t
 _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
-{
+{	
 	if (item >= DM_KEY_NUM_KEYS) {
 		return -1;
 	}
@@ -637,7 +655,7 @@ static int  _ram_clear(dm_item_t item)
 			break;
 		}
 
-		buf[0] = 0;
+		*buf = 0;
 		offset += g_per_item_size[item];
 	}
 
@@ -758,6 +776,7 @@ _ram_initialize(unsigned max_offset)
 {
 	/* In memory */
 	dm_operations_data.ram.data = (uint8_t *)malloc(max_offset);
+	dm_operations_data.ram.enc_data = (uint8_t *)malloc(1600);
 
 	if (dm_operations_data.ram.data == nullptr) {
 		PX4_WARN("Could not allocate %u bytes of memory", max_offset);
@@ -765,7 +784,21 @@ _ram_initialize(unsigned max_offset)
 		return -1;
 	}
 
-	memset(dm_operations_data.ram.data, 0, max_offset);
+#if defined(INTEGRITY_MODE)
+	if(mesl_signcheck_dataman(k_data_manager_device_path, (int)max_offset) < 0) {
+		memset(dm_operations_data.ram.data, 0, max_offset);
+		PX4_WARN("Reset dataman data");
+	}
+		
+#endif
+
+#if defined(CIPHER_MODE)
+	if(mesl_dec_dataman(k_data_manager_device_path, (int)max_offset) < 0) {
+		memset(dm_operations_data.ram.data, 0, max_offset);
+		PX4_WARN("Reset dataman data");
+	}
+#endif
+
 	dm_operations_data.ram.data_end = &dm_operations_data.ram.data[max_offset - 1];
 	dm_operations_data.running = true;
 
@@ -782,7 +815,9 @@ _file_shutdown()
 static void
 _ram_shutdown()
 {
+	close(dm_operations_data.ram.backup_fd);
 	free(dm_operations_data.ram.data);
+	free(dm_operations_data.ram.enc_data);
 	dm_operations_data.running = false;
 }
 
@@ -996,6 +1031,7 @@ task_main(int argc, char *argv[])
 	_dm_write_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": write");
 
 	int ret = g_dm_ops->initialize(max_offset);
+	dm_size = max_offset;
 
 	if (ret) {
 		g_task_should_exit = true;
@@ -1235,7 +1271,7 @@ dataman_main(int argc, char *argv[])
 		}
 
 		if (backend == BACKEND_NONE) {
-			backend = BACKEND_FILE;
+			backend = BACKEND_RAM;
 			k_data_manager_device_path = strdup(default_device_path);
 		}
 

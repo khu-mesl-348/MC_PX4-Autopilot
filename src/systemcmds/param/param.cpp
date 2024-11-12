@@ -57,6 +57,7 @@
 #include <inttypes.h>
 #include <sys/stat.h>
 
+#include <modules/mesl_crypto/mc.h>
 #include <parameters/param.h>
 #include "systemlib/err.h"
 
@@ -215,7 +216,6 @@ param_main(int argc, char *argv[])
 		if (!strcmp(argv[1], "dump")) {
 			if (argc >= 3) {
 				return do_dump(argv[2]);
-
 			} else {
 				return do_dump(param_get_default_file());
 			}
@@ -483,11 +483,13 @@ do_dump(const char *param_file_name)
 static int
 do_load(const char *param_file_name)
 {
+	PX4_INFO("open: '%s'", param_file_name);
+	
 	int fd = -1;
 
 	if (param_file_name) { // passing NULL means to select the flash storage
 		fd = open(param_file_name, O_RDONLY);
-
+		
 		if (fd < 0) {
 			PX4_ERR("open '%s' failed (%i)", param_file_name, errno);
 			return 1;
@@ -520,11 +522,12 @@ do_import(const char *param_file_name)
 	if (param_file_name == nullptr) {
 		param_file_name = param_get_default_file();
 	}
+	PX4_INFO("open: '%s'", param_file_name);
 
 	int fd = -1;
 
 	if (param_file_name) { // passing NULL means to select the flash storage
-		fd = open(param_file_name, O_RDONLY);
+		fd = open(param_file_name, O_RDWR);
 
 		if (fd < 0) {
 			PX4_ERR("open '%s' failed (%i)", param_file_name, errno);

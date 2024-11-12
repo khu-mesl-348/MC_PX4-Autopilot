@@ -1,0 +1,12 @@
+menuconfig MODULES_MESL_CRYPTO
+	bool "mesl_crypto"
+	default n
+	---help---
+		Enable support for mesl_crypto
+
+menuconfig USER_MESL_CRYPTO
+	bool "mesl_crypto running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_MESL_CRYPTO
+	---help---
+		Put mesl_crypto in userspace memory

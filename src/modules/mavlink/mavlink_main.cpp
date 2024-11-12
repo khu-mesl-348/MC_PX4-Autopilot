@@ -40,6 +40,11 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
+#define CIPHER_MODE
+//#define INTEGRITY_MODE
+//#define NORMAL_MODE
+
+
 #include <termios.h>
 
 #ifdef CONFIG_NET
@@ -59,6 +64,9 @@
 #include <uORB/topics/event.h>
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
+
+#include "../mesl_crypto/mc.h"
+#include "../mesl_crypto/secure_mavlink/secure_px4.h"
 
 // Guard against MAVLink misconfiguration
 #ifndef MAVLINK_CRC_EXTRA
@@ -729,6 +737,13 @@ Mavlink::get_free_tx_buf()
 
 void Mavlink::send_start(int length)
 {
+#ifdef CIPHER_MODE
+	mesl_px4_encrypt_len(&length);
+#endif
+#ifdef INTEGRITY_MODE
+	mesl_px4_integrity_len(&length);
+#endif
+
 	pthread_mutex_lock(&_send_mutex);
 	_last_write_try_time = hrt_absolute_time();
 
@@ -755,6 +770,13 @@ void Mavlink::send_finish()
 	}
 
 	int ret = -1;
+
+#ifdef CIPHER_MODE
+	mesl_px4_encrypt(&_buf[0],&_buf_fill);
+#endif
+#ifdef INTEGRITY_MODE
+	mesl_px4_integrity_gen(&_buf[0],&_buf_fill);
+#endif
 
 	// send message to UART
 	if (get_protocol() == Protocol::SERIAL) {

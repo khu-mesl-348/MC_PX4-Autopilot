@@ -187,6 +187,10 @@ private:
 		inline void fsync() const;
 
 		void mark_read(size_t n) { _count -= n; _total_written += n; }
+		void calculate_pad(size_t n) {
+			if(n % 16 != 0)
+				_pad = 16 - n % 16;
+		}
 
 		size_t total_written() const { return _total_written; }
 		size_t buffer_size() const { return _buffer_size; }
@@ -194,9 +198,10 @@ private:
 
 		bool _should_run = false;
 	private:
-		const size_t _buffer_size;
+		size_t _buffer_size;
 		int	_fd = -1;
 		uint8_t *_buffer = nullptr;
+		size_t _pad = 0;
 		size_t _head = 0; ///< next position to write to
 		size_t _count = 0; ///< number of bytes in _buffer to be written
 		size_t _total_written = 0;

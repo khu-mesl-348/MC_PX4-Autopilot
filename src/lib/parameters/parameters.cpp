@@ -69,6 +69,9 @@ using namespace time_literals;
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/Subscription.hpp>
 
+#include <modules/mesl_crypto/mc.h>
+#include <modules/mesl_crypto/secure_data/pm_mesl_crypto.h>
+
 /* Include functions common to user and kernel sides */
 #include "parameters_common.cpp"
 
@@ -1109,14 +1112,26 @@ int param_save_default()
 	param_lock_reader();
 
 	int res = PX4_ERROR;
+	PX4_ERR("param export failed (%d)", res);
 	const char *filename = param_get_default_file();
 
 	if (filename) {
+		PX4_ERR("param export failed (%d)", res);
 		static constexpr int MAX_ATTEMPTS = 3;
 
 		for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
 			// write parameters to file
-			int fd = ::open(filename, O_WRONLY | O_CREAT, PX4_O_MODE_666);
+			int fd = ::open(filename, O_RDWR | O_CREAT, PX4_O_MODE_666);
+			
+//----------------------------------------------------------------------------------
+#if defined(INTEGRITY_MODE)
+			mesl_signcheck_param(fd, filename);
+#endif
+
+#if defined(CIPHER_MODE)
+			mesl_dec_param(fd, filename);
+#endif
+//----------------------------------------------------------------------------------
 
 			if (fd > -1) {
 				perf_begin(param_export_perf);
@@ -1141,6 +1156,16 @@ int param_save_default()
 			}
 		}
 
+//----------------------------------------------------------------------------------
+#if defined(INTEGRITY_MODE)
+		mesl_sign_param(filename);
+#endif
+
+#if defined(CIPHER_MODE)
+		mesl_enc_param(filename);
+#endif
+//----------------------------------------------------------------------------------
+
 	} else {
 		perf_begin(param_export_perf);
 		res = flash_param_save(nullptr);
@@ -1155,7 +1180,16 @@ int param_save_default()
 
 		// backup file
 		if (param_backup_file) {
-			int fd_backup_file = ::open(param_backup_file, O_WRONLY | O_CREAT, PX4_O_MODE_666);
+			int fd_backup_file = ::open(param_backup_file, O_RDWR | O_CREAT, PX4_O_MODE_666);
+//----------------------------------------------------------------------------------
+#if defined(INTEGRITY_MODE)
+			mesl_signcheck_param(fd_backup_file, param_backup_file);
+#endif
+
+#if defined(CIPHER_MODE)
+			mesl_dec_param(fd_backup_file, param_backup_file);
+#endif
+//----------------------------------------------------------------------------------
 
 			if (fd_backup_file > -1) {
 				int backup_export_ret = param_export_internal(fd_backup_file, nullptr);
@@ -1171,6 +1205,15 @@ int param_save_default()
 					::close(fd_verify);
 				}
 			}
+//----------------------------------------------------------------------------------
+#if defined(INTEGRITY_MODE)
+			mesl_sign_param(param_backup_file);
+#endif
+
+#if defined(CIPHER_MODE)
+			mesl_enc_param(param_backup_file);
+#endif
+//----------------------------------------------------------------------------------
 		}
 	}
 
@@ -1197,7 +1240,7 @@ param_load_default()
 		return flash_param_load();
 	}
 
-	int fd_load = ::open(filename, O_RDONLY);
+	int fd_load = ::open(filename, O_RDWR);
 
 	if (fd_load < 0) {
 		/* no parameter file is OK, otherwise this is an error */
@@ -1610,6 +1653,11 @@ param_import(int fd)
 	if (fd < 0) {
 		return flash_param_import();
 	}
+	
+#if defined(CIPHER_MODE)
+	const char *filename = param_get_default_file();
+	mesl_dec_param(fd, filename);
+#endif
 
 	return param_import_internal(fd);
 }
@@ -1620,7 +1668,7 @@ param_load(int fd)
 	if (fd < 0) {
 		return flash_param_load();
 	}
-
+	
 	param_reset_all_internal(false);
 	return param_import_internal(fd);
 }
