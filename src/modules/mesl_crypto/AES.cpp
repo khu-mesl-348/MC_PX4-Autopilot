@@ -580,6 +580,7 @@ void AES::do_aes_encrypt(byte *plain,int size_p,byte *cipher,byte *key, int bits
 	int blocks = get_size() / N_BLOCK;
 	set_key (key, bits) ;
 	cbc_encrypt (plain_p, cipher, blocks);
+	free(plain_p);
 }
 
 /******************************************************************************/
