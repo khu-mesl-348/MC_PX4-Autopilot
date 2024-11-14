@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include <SerialImpl.hpp>
+#include <px4_platform/SerialImpl.hpp>
 #include <string.h> // strncpy
 #include <termios.h>
 #include <px4_log.h>

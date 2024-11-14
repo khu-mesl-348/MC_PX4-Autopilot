@@ -558,7 +558,7 @@ static ssize_t _ram_read(dm_item_t item, unsigned index, void *buf, size_t count
 /* Retrieve from the data manager file */
 static ssize_t
 _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
-{	
+{
 	if (item >= DM_KEY_NUM_KEYS) {
 		return -1;
 	}
@@ -789,7 +789,7 @@ _ram_initialize(unsigned max_offset)
 		memset(dm_operations_data.ram.data, 0, max_offset);
 		PX4_WARN("Reset dataman data");
 	}
-		
+
 #endif
 
 #if defined(CIPHER_MODE)

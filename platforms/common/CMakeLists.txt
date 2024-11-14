@@ -50,6 +50,7 @@ add_library(px4_platform
 	px4_cli.cpp
 	shutdown.cpp
 	spi.cpp
+	Serial.cpp
 	${SRCS}
 )
 target_link_libraries(px4_platform prebuild_targets px4_work_queue)

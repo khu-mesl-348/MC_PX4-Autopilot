@@ -40,9 +40,9 @@
  * @author Thomas Gubler <thomas@px4.io>
  */
 
-#define CIPHER_MODE
+//#define CIPHER_MODE
 //#define INTEGRITY_MODE
-//#define NORMAL_MODE
+#define NORMAL_MODE
 
 #include "../mesl_crypto/mc.h"
 #include "../mesl_crypto/secure_mavlink/secure_px4.h"
@@ -3187,11 +3187,14 @@ MavlinkReceiver::run()
 			if (_mavlink->get_protocol() != Protocol::UDP || _mavlink->get_client_source_initialized()) {
 #endif // MAVLINK_UDP
 
+#if defined(CIPHER_MODE) || defined(INTEGRITY_MODE)
+
 				static int mesl_packet_buf_index=0;
 				static uint8_t mesl_packet_buf[300] = {0};
 				static int mesl_nread = 0;
 				static int mesl_next_index = 0;
 				int mesl_check_flag=0;
+#endif
 
 #ifdef CIPHER_MODE
 				mesl_px4_decrypt(&nread, &buf[0], &mesl_packet_buf[0], &mesl_packet_buf_index, &mesl_next_index, &mesl_nread, &mesl_check_flag);

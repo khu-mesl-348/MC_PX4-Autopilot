@@ -75,7 +75,9 @@ void mesl_sign_log(byte *buffer, int size) {
 }
 
 void mesl_enc_log(byte *buffer, int size) {
-    Encrypt_AES128_CTR(0, buffer, size, buffer);
+    //Encrypt_AES128_CTR(AES* aes_ctr, int keyNum, uint8_t* plain_data, int plain_len, uint8_t* enc_data)
+    AES aes_ctr;
+    Encrypt_AES128_CTR(&aes_ctr, 0, buffer, size, buffer);
 }
 
 void mesl_close_sign_file() {

@@ -40,9 +40,9 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#define CIPHER_MODE
+//#define CIPHER_MODE
 //#define INTEGRITY_MODE
-//#define NORMAL_MODE
+#define NORMAL_MODE
 
 
 #include <termios.h>
